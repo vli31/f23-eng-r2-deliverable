@@ -24,7 +24,7 @@ export default function SpeciesCard({species, profile}: {species: Species, profi
       <h4 className="text-lg font-light italic">{species.scientific_name}</h4>
       <p>{species.description ? species.description.slice(0, 150).trim() + "..." : ""}</p>
       <LearnMoreDialog species={species}/>
-      <EditSpeciesDialog key={new Date().getTime()} userId={profile} />
+      <EditSpeciesDialog species={species} profile={profile} />
     </div>
   );
 }

@@ -1,15 +1,7 @@
 "use client";
 
-import { Icons } from "@/components/icons";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,16 +15,12 @@ import { useState, type BaseSyntheticEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-// We use zod (z) to define a schema for the "Add species" form.
-// zod handles validation of the input values with methods like .string(), .nullable(). It also processes the form inputs with .transform() before the inputs are sent to the database.
-
 const kingdoms = z.enum(["Animalia", "Plantae", "Fungi", "Protista", "Archaea", "Bacteria"]);
 
 const speciesSchema = z.object({
   common_name: z
     .string()
     .nullable()
-    // Transform empty string or only whitespace input to null before form submission
     .transform((val) => (val?.trim() === "" ? null : val?.trim())),
   description: z
     .string()
@@ -54,34 +42,47 @@ const speciesSchema = z.object({
 
 type FormData = z.infer<typeof speciesSchema>;
 
-const defaultValues: Partial<FormData> = {
-  kingdom: "Animalia",
-};
+type Species = Database["public"]["Tables"]["species"]["Row"];
 
-export default function EditSpeciesDialog({ userId }: { userId: string }) {
+export default function EditSpeciesDialog({species, profile}: {species: Species, profile: string}) {
   const router = useRouter();
   const [open, setOpen] = useState<boolean>(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(speciesSchema),
-    defaultValues,
+    defaultValues: {
+      common_name: species.common_name ?? "",
+      description: species.description ?? "",
+      kingdom: species.kingdom ?? "Animalia",
+      scientific_name: species.scientific_name ?? "",
+      total_population: species.total_population,
+      image: species.image ?? "",
+    },
     mode: "onChange",
   });
 
   const onSubmit = async (input: FormData) => {
     // The `input` prop contains data that has already been processed by zod. We can now use it in a supabase query
     const supabase = createClientComponentClient<Database>();
-    const { error } = await supabase.from("species").insert([
+    const { error } = await supabase.from("species").update([
       {
-        author: userId,
+        author: profile,
         common_name: input.common_name,
         description: input.description,
         kingdom: input.kingdom,
         scientific_name: input.scientific_name,
         total_population: input.total_population,
         image: input.image,
-      },
-    ]);
+      }
+    ]).eq("id", species.id);
+
+    if (profile != species.author) {
+      return toast({
+        title: "Something went wrong.",
+        description: "Please only edit your own animals!",
+        variant: "destructive",
+      })
+    }
 
     if (error) {
       return toast({
@@ -89,44 +90,38 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
         description: error.message,
         variant: "destructive",
       });
+
     }
-    // Reset form values to the data values that have been processed by zod.
-    // This way the user sees any changes that have occurred during transformation
+
     form.reset(input);
-
     setOpen(false);
-
-    // Refresh all server components in the current route. This helps display the newly created species because species are fetched in a server component, species/page.tsx.
-    // Refreshing that server component will display the new species from Supabase
-    router.refresh();
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="secondary" onClick={() => setOpen(true)}>
-          <Icons.add className="mr-3 h-5 w-5" />
-          Add Species
+          Edit Species
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-screen overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Add Species</DialogTitle>
+          <DialogTitle>Edit Species</DialogTitle>
           <DialogDescription>
-            Add a new species here. Click &quot;Add Species&quot; below when you&apos;re done.
+            Edit the species information here. Click &quot;Save Changes&quot; below when you&apos;re done.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)}>
             <div className="grid w-full items-center gap-4">
-              <FormField
+            <FormField
                 control={form.control}
                 name="scientific_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Scientific Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Cavia porcellus" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -142,7 +137,7 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
                     <FormItem>
                       <FormLabel>Common Name</FormLabel>
                       <FormControl>
-                        <Input value={value ?? ""} placeholder="Guinea pig" {...rest} />
+                        <Input value={value ?? ""} {...rest} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -159,7 +154,7 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
                     <Select onValueChange={(value) => field.onChange(kingdoms.parse(value))} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a kingdom" />
+                          <SelectValue/>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -186,7 +181,6 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
                       {/* Using shadcn/ui form with number: https://github.com/shadcn-ui/ui/issues/421 */}
                       <Input
                         type="number"
-                        placeholder="300000"
                         {...field}
                         onChange={(event) => field.onChange(+event.target.value)}
                       />
@@ -203,7 +197,6 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/George_the_amazing_guinea_pig.jpg/440px-George_the_amazing_guinea_pig.jpg"
                         {...field}
                       />
                     </FormControl>
@@ -223,7 +216,6 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
                       <FormControl>
                         <Textarea
                           value={value ?? ""}
-                          placeholder="The guinea pig or domestic guinea pig, also known as the cavy or domestic cavy, is a species of rodent belonging to the genus Cavia in the family Caviidae."
                           {...rest}
                         />
                       </FormControl>
@@ -234,7 +226,7 @@ export default function EditSpeciesDialog({ userId }: { userId: string }) {
               />
               <div className="flex">
                 <Button type="submit" className="ml-1 mr-1 flex-auto">
-                  Add Species
+                  Save Changes
                 </Button>
                 <Button
                   type="button"
