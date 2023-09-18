@@ -76,6 +76,9 @@ export default function EditSpeciesDialog({species, profile}: {species: Species,
       }
     ]).eq("id", species.id);
 
+    // refresh page to populate changes
+    router.refresh();
+
     if (profile != species.author) {
       return toast({
         title: "Something went wrong.",
