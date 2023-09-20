@@ -1,6 +1,6 @@
 // import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/schema";
-import React, { useState } from 'react';
+import React from 'react';
 
 import Image from "next/image";
 import LearnMoreDialog from "./learn-more-dialog";
@@ -8,6 +8,7 @@ import LearnMoreDialog from "./learn-more-dialog";
 // import { createServerSupabaseClient } from "@/lib/server-utils";
 // import { redirect } from "next/navigation";
 import EditSpeciesDialog from "./edit-species-dialog";
+import DeleteSpeciesDialog from "./delete-species-dialog";
 
 type Species = Database["public"]["Tables"]["species"]["Row"];
 
@@ -25,6 +26,7 @@ export default function SpeciesCard({species, profile}: {species: Species, profi
       <p>{species.description ? species.description.slice(0, 150).trim() + "..." : ""}</p>
       <LearnMoreDialog species={species}/>
       <EditSpeciesDialog species={species} profile={profile} />
+      <DeleteSpeciesDialog species={species} profile={profile} />
     </div>
   );
 }

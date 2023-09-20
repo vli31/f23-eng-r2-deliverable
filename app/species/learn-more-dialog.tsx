@@ -5,18 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Database } from "@/lib/schema";
 
-// Define props for LearnMoreDialog
-type LearnMoreDialogProps = {
-  species: Database["public"]["Tables"]["species"]["Row"];
-};
-
 // Create the LearnMoreDialog component
-export default function LearnMoreDialog({ species }: LearnMoreDialogProps) {
+export default function LearnMoreDialog({ species }: {species: Database["public"]["Tables"]["species"]["Row"]}) {
   const [open, setOpen] = useState<boolean>(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-     {/* onClose={onClose} */}
      <DialogTrigger asChild>
         <Button variant="secondary" onClick={() => setOpen(true)}>
           Learn More

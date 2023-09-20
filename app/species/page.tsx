@@ -27,9 +27,8 @@ export default async function SpeciesList() {
       </div>
       <Separator className="my-4" />
       <div className="flex flex-wrap justify-center">
-        {species?.map((species) => <SpeciesCard species={species} profile={session.user.id} />)}
+        {species?.map((species) => <SpeciesCard key={species.id} species={species} profile={session.user.id} />)}
       </div>
-      {/* key={species.id} {...species} */}
     </>
   );
 }
